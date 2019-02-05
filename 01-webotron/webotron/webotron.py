@@ -4,6 +4,7 @@ import click
 from botocore.exceptions import ClientError
 from pathlib import Path
 import mimetypes
+import os
 #print(sys.argv)
 session = boto3.Session(profile_name='pythonaws')
 s3 = session.resource('s3')
@@ -73,6 +74,13 @@ def upload_file(s3_bucket, path, key):
         ExtraArgs={
             'ContentType': content_type
         })
+def convertPath(path):
+
+    separator = os.path.sep
+    print(separator)
+    if separator != '/':
+        path = path.replace(separator,'/')
+        return path
 
 @cli.command('sync')
 @click.argument('pathname', type=click.Path(exists=True))
@@ -85,7 +93,7 @@ def sync(pathname, bucket):
     def handle_directory(target):
         for p in target.iterdir():
             if p.is_dir(): handle_directory(p)
-            if p.is_file(): upload_file(s3_bucket, str(p), str(p.relative_to(root)))
+            if p.is_file(): upload_file(s3_bucket, str(p), convertPath(str(p.relative_to(root))))
     
     handle_directory(root)
 
