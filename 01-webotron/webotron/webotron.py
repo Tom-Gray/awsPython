@@ -1,3 +1,12 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+"""
+Webotron deploys websites with aws
+
+
+"""
+
 import boto3
 import sys
 import click
