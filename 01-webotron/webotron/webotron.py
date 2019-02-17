@@ -18,14 +18,20 @@ import os
 
 from bucket import BucketManager
 
-session = boto3.Session(profile_name='pythonaws')
-bucketmanager = BucketManager(session)
-s3 = session.resource('s3')
+session = None
+bucketmanager = None 
 
 @click.group()
-def cli():
+@click.option('--profile', default=None, help="Use a given AWS profile")
+def cli(profile):
     "webotron deplous a websites to AWS"
-    pass
+    global session, bucketmanager
+    session_config= {} #new dictionary
+    if profile:
+        session_config['profile_name'] = profile
+
+    session = boto3.Session(**session_config) # this is like doing a @splat in powershell
+    bucketmanager = BucketManager(session)
 
 @cli.command('list-buckets')
 def list_buckets():
