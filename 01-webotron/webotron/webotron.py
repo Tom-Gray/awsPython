@@ -15,7 +15,11 @@ from pathlib import Path
 import mimetypes
 import os
 #print(sys.argv)
+
+from bucket import BucketManager
+
 session = boto3.Session(profile_name='pythonaws')
+bucketmanager = BucketManager(session)
 s3 = session.resource('s3')
 
 @click.group()
@@ -26,86 +30,33 @@ def cli():
 @cli.command('list-buckets')
 def list_buckets():
     "List all s3 buckets!"
-    for bucket in s3.buckets.all():
-        print(bucket)
+    for bucket in bucketmanager.all_buckets():
+       print(bucket)
 
 @cli.command('list-bucket-objects')
 @click.argument('bucket')
 def list_bucket_objects(bucket):
     "List objects in S3 bucket"
-    for obj in s3.Bucket(bucket).objects.all():
+    for obj in bucketmanager.all_objects(bucket):
         print(obj)
+
 
 @cli.command('setup-bucket')
 @click.argument('bucket')
 def setup_bucket(bucket):
     "Create and configure S3 website bucket"
-    new_bucket = None
-    try:
-        new_bucket = s3.create_bucket(Bucket=bucket, CreateBucketConfiguration={'LocationConstraint': session.region_name})
-    except ClientError as e:
-        if e.response['Error']['Code'] == "BucketAlreadyOwnedByYou":
-            new_bucket = s3.Bucket(bucket)
-        else:
-            raise e
-    policy = """
-    {
-    "Version":"2012-10-17",
-    "Statement":[{
-        "Sid":"PublicReadGetObject",
-            "Effect":"Allow",
-        "Principal": "*",
-        "Action":["s3:GetObject"],
-        "Resource":["arn:aws:s3:::%s/*"
-        ]
-        }
-    ]
-    }
-    """ % new_bucket.name
-
-    policy = policy.strip()
-    pol = new_bucket.Policy()
-    pol.put(Policy=policy)
-    ws = new_bucket.Website()
-    ws.put(WebsiteConfiguration={'ErrorDocument': {
-                'Key': 'error.html'
-            },
-            'IndexDocument': {
-                'Suffix': 'index.html'
-            }})
+    s3_bucket = bucketmanager.init_bucket(bucket)
+    bucketmanager.set_policy(s3_bucket)
+    bucketmanager.configure_website(s3_bucket)
     return
 
-def upload_file(s3_bucket, path, key):
-    content_type = mimetypes.guess_type(key)[0] or 'text/plain'
-    s3_bucket.upload_file(
-        path,
-        key,
-        ExtraArgs={
-            'ContentType': content_type
-        })
-def convertPath(path):
-
-    separator = os.path.sep
-    print(separator)
-    if separator != '/':
-        path = path.replace(separator,'/')
-        return path
 
 @cli.command('sync')
 @click.argument('pathname', type=click.Path(exists=True))
 @click.argument('bucket')
 def sync(pathname, bucket):
     "Sync contents of folder to Bucket"
-    s3_bucket = s3.Bucket(bucket)
-    root = Path(pathname).expanduser().resolve()
-
-    def handle_directory(target):
-        for p in target.iterdir():
-            if p.is_dir(): handle_directory(p)
-            if p.is_file(): upload_file(s3_bucket, str(p), convertPath(str(p.relative_to(root))))
-    
-    handle_directory(root)
-
+    bucketmanager.sync(pathname, bucket)
 
 if __name__ == '__main__':
     cli()
