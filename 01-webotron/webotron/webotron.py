@@ -14,6 +14,7 @@ from botocore.exceptions import ClientError
 from pathlib import Path
 import mimetypes
 import os
+
 #print(sys.argv)
 
 from bucket import BucketManager
@@ -63,6 +64,7 @@ def setup_bucket(bucket):
 def sync(pathname, bucket):
     "Sync contents of folder to Bucket"
     bucketmanager.sync(pathname, bucket)
+    print(bucketmanager.get_bucket_url(bucketmanager.s3.Bucket(bucket)))
 
 if __name__ == '__main__':
     cli()
