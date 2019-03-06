@@ -109,3 +109,4 @@ venv.bak/
 # mypy
 .mypy_cache/
 01-webotron/Pipfile.lock
+01-webotron/kitten_web/bigfile.bin
