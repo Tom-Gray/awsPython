@@ -8,6 +8,8 @@ import mimetypes
 from botocore.exceptions import ClientError
 
 import util
+
+
 class BucketManager:
     """Manage an S3 Bucket."""
 
@@ -17,7 +19,9 @@ class BucketManager:
         self.s3 = self.session.resource('s3')
 
     def get_region_name(self, bucket):
-        bucket_location = self.s3.meta.client.get_bucket_location(Bucket=bucket.name)
+        """Get the bucket's region name."""
+        client = self.s3.meta.client
+        bucket_location = client.get_bucket_location(Bucket=bucket.name)
 
         return bucket_location["LocationConstraint"] or 'us-east-1'
 
