@@ -1,60 +1,68 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-"""
-Webotron deploys websites with aws
+"""Webotron: Deploy websites with aws.
 
-
+Webotron automates the process of deploying static websites to AWS.
+- Configure AWS S3 buckets
+  - Create them
+  - Set them up for static website hosting
+  - Deploy local files to them
+- Configure DNS with AWS Route 53
+- Configure a Content Delivery Network and SSL with AWS CloudFront
 """
 
 import boto3
-import sys
 import click
-from botocore.exceptions import ClientError
-from pathlib import Path
-import mimetypes
-import os
-
-#print(sys.argv)
 
 from bucket import BucketManager
+from domain import DomainManager
+import util
 
 session = None
-bucketmanager = None 
+bucket_manager = None
+domain_manager = None
+
 
 @click.group()
-@click.option('--profile', default=None, help="Use a given AWS profile")
+@click.option('--profile', default=None,
+              help="Use a given AWS profile.")
 def cli(profile):
-    "webotron deplous a websites to AWS"
-    global session, bucketmanager
-    session_config= {} #new dictionary
-    if profile:
-        session_config['profile_name'] = profile
+    """Webotron deploys websites to AWS."""
+    global session, bucket_manager, domain_manager
 
-    session = boto3.Session(**session_config) # this is like doing a @splat in powershell
-    bucketmanager = BucketManager(session)
+    session_cfg = {}
+    if profile:
+        session_cfg['profile_name'] = profile
+
+    session = boto3.Session(**session_cfg)
+    bucket_manager = BucketManager(session)
+    domain_manager = DomainManager(session)
+
 
 @cli.command('list-buckets')
 def list_buckets():
-    "List all s3 buckets!"
-    for bucket in bucketmanager.all_buckets():
-       print(bucket)
+    """List all s3 buckets."""
+    for bucket in bucket_manager.all_buckets():
+        print(bucket)
+
 
 @cli.command('list-bucket-objects')
 @click.argument('bucket')
 def list_bucket_objects(bucket):
-    "List objects in S3 bucket"
-    for obj in bucketmanager.all_objects(bucket):
+    """List objects in an s3 bucket."""
+    for obj in bucket_manager.all_objects(bucket):
         print(obj)
 
 
 @cli.command('setup-bucket')
 @click.argument('bucket')
 def setup_bucket(bucket):
-    "Create and configure S3 website bucket"
-    s3_bucket = bucketmanager.init_bucket(bucket)
-    bucketmanager.set_policy(s3_bucket)
-    bucketmanager.configure_website(s3_bucket)
+    """Create and configure S3 bucket."""
+    s3_bucket = bucket_manager.init_bucket(bucket)
+    bucket_manager.set_policy(s3_bucket)
+    bucket_manager.configure_website(s3_bucket)
+
     return
 
 
@@ -62,11 +70,24 @@ def setup_bucket(bucket):
 @click.argument('pathname', type=click.Path(exists=True))
 @click.argument('bucket')
 def sync(pathname, bucket):
-    "Sync contents of folder to Bucket"
-    bucketmanager.sync(pathname, bucket)
-    print(bucketmanager.get_bucket_url(bucketmanager.s3.Bucket(bucket)))
+    """Sync contents of PATHNAME to BUCKET."""
+    bucket_manager.sync(pathname, bucket)
+    print(bucket_manager.get_bucket_url(bucket_manager.s3.Bucket(bucket)))
+
+
+@cli.command('setup-domain')
+@click.argument('domain')
+def setup_domain(domain):
+    """Configure DOMAIN to point to BUCKET."""
+    bucket = bucket_manager.get_bucket(domain)
+
+    zone = domain_manager.find_hosted_zone(domain) \
+        or domain_manager.create_hosted_zone(domain)
+
+    endpoint = util.get_endpoint(bucket_manager.get_region_name(bucket))
+    domain_manager.create_s3_domain_record(zone, domain, endpoint)
+    print("Domain configure: http://{}".format(domain))
+
 
 if __name__ == '__main__':
     cli()
-
-    
