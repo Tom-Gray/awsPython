@@ -35,7 +35,7 @@ def cli(profile):
     if profile:
         session_cfg['profile_name'] = profile
 
-    session = boto3.Session(**session_cfg)
+    session = boto3.Session(**session_cfg) #this is like doing a splat in powershell
     bucket_manager = BucketManager(session)
     domain_manager = DomainManager(session)
 
