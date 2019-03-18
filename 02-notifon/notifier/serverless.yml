@@ -21,6 +21,8 @@ provider:
   name: aws
   runtime: python3.7
   region: us-east-2
+  environment:
+    SLACK_WEBHOOK_URL: ${file(../config.${self:provider.stage}.json):notifier.slack_webhook_url}
 
 # you can overwrite defaults here
 #  stage: dev
@@ -56,8 +58,8 @@ provider:
 #    - exclude-me-dir/**
 
 functions:
-  hello:
-    handler: handler.hello
+  post-to-slack:
+    handler: handler.post_to_slack
     events:
       - cloudwatchEvent:
           event: 
@@ -114,3 +116,6 @@ functions:
 #     NewOutput:
 #       Description: "Description for the output"
 #       Value: "Some output value"
+
+plugins:
+  - serverless-python-requirements

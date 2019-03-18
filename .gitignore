@@ -1,7 +1,7 @@
 node_modules/
 
 config.dev.json
-
+node_modules/
 *.pem
 
 # Byte-compiled / optimized / DLL files

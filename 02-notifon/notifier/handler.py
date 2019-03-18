@@ -1,11 +1,10 @@
-import json
+import os
+import requests
 
+def post_to_slack(event, context):
+    slack_webhook_url = os.environ['SLACK_WEBHOOK_URL']
 
-def hello(event, context):
-    print("Here comes the event")
-    print(event)
-    return {
-        "message": "Go Serverless v1.0! Your function executed successfully!",
-        "event": event
-    }
+    message =  '{}'.format(event['detail']['Description'])
+    requests.post(slack_webhook_url, message)
+    return
 
