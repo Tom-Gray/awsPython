@@ -110,3 +110,6 @@ venv.bak/
 .mypy_cache/
 01-webotron/Pipfile.lock
 01-webotron/kitten_web/bigfile.bin
+.DS_Store
+02-notifon/.DS_Store
+02-notifon/.DS_Store
