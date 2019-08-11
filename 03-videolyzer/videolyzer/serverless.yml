@@ -28,8 +28,16 @@ provider:
         Fn::GetAtt:
           - RekognitionSNSPublishRole
           - Arn
+    - Effect: "Allow"
+      Action:
+        - dynamodb:PutItem
+      Resource:
+        Fn::GetAtt:
+          - VideosTable #this refers to the resource name of the table in the cfn definition in the resources section of this file.
+          - Arn
   
   environment:
+    DYNAMDB_TABLE_NAME: ${self:custom.videosTableName}
     REKOGNITION_SNS_TOPIC_ARN: ${self:custom.rekognitionSNSTopicArn}
     REKOGNITION_ROLE_ARN: #we can use this because we defined this role as cfn below.
       Fn::GetAtt:
@@ -37,6 +45,7 @@ provider:
         - Arn
         
 custom:
+  videosTableName: ${file(../config.${self:provider.stage}.json):videolyzer.videos_table}
   rekognitionSNSTopicArn:
     Fn::Join:
       - ':'
@@ -76,6 +85,21 @@ functions:
   #we can add raw cloudformation here to build stuff, such as IAM polcies.
 resources:
   Resources:
+    VideosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: videoName
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: videoName
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:custom.videosTableName}
     RekognitionSNSPublishRole:
       Type: AWS::IAM::Role
       Properties:
