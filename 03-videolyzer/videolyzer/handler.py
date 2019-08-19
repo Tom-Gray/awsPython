@@ -46,8 +46,17 @@ def get_video_labels(job_id):
     return response
 
 def put_labels_in_db(data, video_name, video_bucket):
-    pass
+    del data["ResponseMetadata"]
+    del data["JobStatus"]
 
+    data["VideoName"] = video_name
+    data["VideoBucket"] = video_bucket
+
+    dynamodb = boto3.resource('dynamodb')
+    table_name = os.environ['DYNAMO_DB_TABLE_NAME']
+    videos_table = dynamodb.Table(table_name)
+
+    videos_table.put_item(Item=data)
 # Lambda events
 
 def start_processing_video(event, context):
